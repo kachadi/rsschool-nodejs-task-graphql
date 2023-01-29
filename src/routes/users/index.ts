@@ -71,14 +71,32 @@ const plugin: FastifyPluginAsyncJsonSchemaToTs = async (
 
       users.forEach(async (el) => {
         if (el.subscribedToUserIds.includes(id)) {
-          const updatesubscribedToUserIds = el.subscribedToUserIds.filter(
+          const updateSubscribedToUserIds = el.subscribedToUserIds.filter(
             (i) => i !== id
           );
 
-          el.subscribedToUserIds = updatesubscribedToUserIds;
+          el.subscribedToUserIds = updateSubscribedToUserIds;
 
           await fastify.db.users.change(el.id, el);
         }
+      });
+
+      const deletedUserPosts = await fastify.db.posts.findMany({
+        key: 'userId',
+        equals: id,
+      });
+
+      deletedUserPosts.forEach(async (post) => {
+        await fastify.db.posts.delete(post.id);
+      });
+
+      const deletedUserProfiles = await fastify.db.profiles.findMany({
+        key: 'userId',
+        equals: id,
+      });
+
+      deletedUserProfiles.forEach(async (profile) => {
+        await fastify.db.profiles.delete(profile.id);
       });
 
       await fastify.db.users.delete(id);
@@ -102,7 +120,7 @@ const plugin: FastifyPluginAsyncJsonSchemaToTs = async (
         throw fastify.httpErrors.badRequest();
       }
 
-      const { userId: userIdWhoWantSubscribe } = request.body;
+      const { userId: userIdWhoWantsSubscribe } = request.body;
 
       const user = await fastify.db.users.findOne({ key: 'id', equals: id });
 
@@ -110,23 +128,23 @@ const plugin: FastifyPluginAsyncJsonSchemaToTs = async (
         throw fastify.httpErrors.notFound();
       }
 
-      const userWhoWantSubscribe = await fastify.db.users.findOne({
+      const userWhoWantsSubscribe = await fastify.db.users.findOne({
         key: 'id',
-        equals: userIdWhoWantSubscribe,
+        equals: userIdWhoWantsSubscribe,
       });
 
-      if (userWhoWantSubscribe === null) {
+      if (userWhoWantsSubscribe === null) {
         throw fastify.httpErrors.notFound();
       }
 
-      if (userWhoWantSubscribe.subscribedToUserIds.includes(id)) {
+      if (userWhoWantsSubscribe.subscribedToUserIds.includes(id)) {
         throw fastify.httpErrors.badRequest();
       }
 
-      userWhoWantSubscribe.subscribedToUserIds.push(id);
+      userWhoWantsSubscribe.subscribedToUserIds.push(id);
       return await fastify.db.users.change(
-        userWhoWantSubscribe.id,
-        userWhoWantSubscribe
+        userWhoWantsSubscribe.id,
+        userWhoWantsSubscribe
       );
     }
   );
@@ -146,34 +164,34 @@ const plugin: FastifyPluginAsyncJsonSchemaToTs = async (
         throw fastify.httpErrors.badRequest();
       }
 
-      const { userId: userIdWhoWantUnsubscribe } = request.body;
+      const { userId: userIdWhoWantsUnsubscribe } = request.body;
       const user = await fastify.db.users.findOne({ key: 'id', equals: id });
 
       if (user === null) {
         throw fastify.httpErrors.notFound();
       }
 
-      const userWhoWantUnsubscribe = await fastify.db.users.findOne({
+      const userWhoWantsUnsubscribe = await fastify.db.users.findOne({
         key: 'id',
-        equals: userIdWhoWantUnsubscribe,
+        equals: userIdWhoWantsUnsubscribe,
       });
 
-      if (userWhoWantUnsubscribe === null) {
+      if (userWhoWantsUnsubscribe === null) {
         throw fastify.httpErrors.notFound();
       }
 
-      if (!userWhoWantUnsubscribe.subscribedToUserIds.includes(id)) {
+      if (!userWhoWantsUnsubscribe.subscribedToUserIds.includes(id)) {
         throw fastify.httpErrors.badRequest();
       }
 
       const updateSubscribedToUserIds =
-        userWhoWantUnsubscribe.subscribedToUserIds.filter((el) => el !== id);
+        userWhoWantsUnsubscribe.subscribedToUserIds.filter((el) => el !== id);
 
-      userWhoWantUnsubscribe.subscribedToUserIds = updateSubscribedToUserIds;
+      userWhoWantsUnsubscribe.subscribedToUserIds = updateSubscribedToUserIds;
 
       return await fastify.db.users.change(
-        userWhoWantUnsubscribe.id,
-        userWhoWantUnsubscribe
+        userWhoWantsUnsubscribe.id,
+        userWhoWantsUnsubscribe
       );
     }
   );
